@@ -63,13 +63,6 @@
     margin-top:8px;
     line-height:1.25;
   }
-  .tier-strip{ display:flex; gap:6px; margin-top:16px; }
-  .tier-chip{
-    flex:1; text-align:center; font-family:'IBM Plex Mono',monospace;
-    font-size:9px; letter-spacing:.08em; padding:5px 0; border-radius:2px;
-    text-transform:uppercase; opacity:.5; border:1px solid var(--platino-line);
-  }
-  .tier-chip.oro{ color:var(--oro); border-color:var(--oro); }
 
   nav.tabs{ display:flex; flex-direction:column; padding:12px 0; }
   .tab{
@@ -100,7 +93,7 @@
   .page-head p{ color:var(--platino); font-size:14.5px; margin-top:12px; max-width:56ch; line-height:1.6; }
 
   .meta-row{
-    display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
     background:var(--ink-soft); border:1px solid var(--platino-line);
     padding:20px; border-radius:6px; margin-bottom:48px;
   }
@@ -114,16 +107,14 @@
     scroll-margin-top:32px;
     box-shadow:0 1px 0 rgba(0,0,0,0.2), 0 20px 40px -30px rgba(0,0,0,0.6);
   }
-  .section-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:6px; }
+  .section-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:28px; }
   .section-head .num{ font-family:'IBM Plex Mono',monospace; color:var(--oro); font-size:13px; }
   .section-head h3{ font-size:22px; }
-  .section-sub{ color:#5b5f52; font-size:13.5px; margin:6px 0 26px 0; line-height:1.55; max-width:64ch; }
 
   .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px 24px; }
   .field{ display:flex; flex-direction:column; gap:6px; }
   .field.full{ grid-column:1 / -1; }
   label{ font-size:12.5px; font-weight:600; color:#3b3f33; }
-  label .why{ font-weight:400; color:#8a8d7e; font-size:11.5px; display:block; margin-top:1px; }
   input, select, textarea{
     font-family:'IBM Plex Sans', sans-serif;
     font-size:14.5px;
@@ -172,11 +163,6 @@
     <div class="rail-brand">
       <div class="eyebrow">La Unión de Crédito Santa Fe</div>
       <h1>Guía de Conocimiento del Cliente</h1>
-      <div class="tier-strip">
-        <div class="tier-chip oro">Oro</div>
-        <div class="tier-chip">Platino</div>
-        <div class="tier-chip">Black</div>
-      </div>
     </div>
     <nav class="tabs" id="tabNav">
       <a class="tab active" data-target="s1"><span class="num">01</span> Identidad</a>
@@ -194,7 +180,6 @@
     <div class="page-head">
       <div class="eyebrow">Insumo para CRM y programa de lealtad</div>
       <h2>Expediente del cliente</h2>
-      <p>Registra solo lo que te ayude a atender mejor, felicitar mejor o vender mejor. Lo demás puede esperar a la próxima conversación.</p>
     </div>
 
     <form id="clientForm">
@@ -204,15 +189,6 @@
           <input type="text" name="asesor" required>
         </div>
         <div class="field">
-          <label>Nivel de lealtad</label>
-          <select name="nivel_lealtad">
-            <option value="">Sin definir</option>
-            <option>Oro</option>
-            <option>Platino</option>
-            <option>Black</option>
-          </select>
-        </div>
-        <div class="field">
           <label>Fecha de captura</label>
           <input type="date" name="fecha_captura" id="fechaCaptura">
         </div>
@@ -220,14 +196,13 @@
 
       <section class="section" id="s1">
         <div class="section-head"><span class="num">01</span><h3>Identidad y datos personales</h3></div>
-        <p class="section-sub">Lo básico para dirigirnos a la persona correctamente y no como un número de cuenta.</p>
         <div class="field-grid">
           <div class="field full">
             <label>Nombre completo</label>
             <input type="text" name="nombre_completo" required>
           </div>
           <div class="field">
-            <label>Cómo le gusta que le llamen<span class="why">Apodo, Lic., ingeniero, nombre de pila…</span></label>
+            <label>Cómo le gusta que le llamen</label>
             <input type="text" name="como_le_gusta_llamar">
           </div>
           <div class="field">
@@ -251,7 +226,6 @@
 
       <section class="section" id="s2">
         <div class="section-head"><span class="num">02</span><h3>Familia y vida personal</h3></div>
-        <p class="section-sub">Lo que le importa fuera del negocio. Recordar estos detalles es lo que separa a un banco de un asesor de confianza.</p>
         <div class="field-grid">
           <div class="field">
             <label>Cónyuge o pareja</label>
@@ -280,7 +254,7 @@
           </div>
           <div class="field full">
             <label>Hijos: nombres y edades</label>
-            <textarea name="hijos_detalle" placeholder="Ej. María (16), Diego (12)"></textarea>
+            <textarea name="hijos_detalle"></textarea>
           </div>
           <div class="field full">
             <label>Escuela o universidad de los hijos</label>
@@ -291,7 +265,6 @@
 
       <section class="section" id="s3">
         <div class="section-head"><span class="num">03</span><h3>Fechas clave de la relación</h3></div>
-        <p class="section-sub">El calendario de la relación: convierte gestos manuales en un sistema que nunca falla.</p>
         <div class="field-grid">
           <div class="field">
             <label>Cliente de La Unión desde</label>
@@ -306,7 +279,6 @@
 
       <section class="section" id="s4">
         <div class="section-head"><span class="num">04</span><h3>El negocio del cliente</h3></div>
-        <p class="section-sub">Aquí vive la mayor parte del valor comercial: entender su empresa permite ofrecer el producto correcto en el momento correcto.</p>
         <div class="field-grid">
           <div class="field full">
             <label>Giro o industria</label>
@@ -318,14 +290,13 @@
           </div>
           <div class="field">
             <label>Facturación aproximada</label>
-            <input type="text" name="facturacion_aproximada" placeholder="Ej. $2-5M anuales">
+            <input type="text" name="facturacion_aproximada">
           </div>
         </div>
       </section>
 
       <section class="section" id="s5">
         <div class="section-head"><span class="num">05</span><h3>Preferencias de comunicación y trato</h3></div>
-        <p class="section-sub">Cómo quiere que lo tratemos. Respetar esto evita fricción y hace que cada contacto se sienta cómodo.</p>
         <div class="field-grid">
           <div class="field">
             <label>Canal preferido</label>
@@ -339,7 +310,7 @@
           </div>
           <div class="field">
             <label>Horarios de contacto</label>
-            <input type="text" name="horarios_contacto" placeholder="Ej. mañanas, no fines de semana">
+            <input type="text" name="horarios_contacto">
           </div>
           <div class="field">
             <label>Frecuencia deseada</label>
@@ -360,7 +331,7 @@
             </select>
           </div>
           <div class="field full">
-            <label>Personas autorizadas<span class="why">Asistente, contador o socio que puede recibir información</span></label>
+            <label>Personas autorizadas</label>
             <input type="text" name="personas_autorizadas">
           </div>
         </div>
@@ -368,7 +339,6 @@
 
       <section class="section" id="s6">
         <div class="section-head"><span class="num">06</span><h3>Intereses, aficiones y estilo</h3></div>
-        <p class="section-sub">El material para sorprender: regalos y experiencias pesan más cuando dan justo en el gusto de la persona.</p>
         <div class="field-grid">
           <div class="field">
             <label>Pasatiempos y aficiones</label>
@@ -387,7 +357,7 @@
             <input type="text" name="destinos_viaje_favoritos">
           </div>
           <div class="field full">
-            <label>Preferencias de regalo<span class="why">Qué le gusta y qué evitar</span></label>
+            <label>Preferencias de regalo</label>
             <input type="text" name="preferencias_regalo">
           </div>
         </div>
@@ -395,14 +365,13 @@
 
       <section class="section" id="s7">
         <div class="section-head"><span class="num">07</span><h3>Señales y momentos de oportunidad</h3></div>
-        <p class="section-sub">Eventos que, bien detectados, abren la puerta a una oferta o a un gesto memorable.</p>
         <div class="field-grid">
           <div class="field full">
-            <label>Momentos de vida del negocio<span class="why">Rondas cerradas, contratos, nueva sucursal…</span></label>
+            <label>Momentos de vida del negocio</label>
             <textarea name="momentos_vida_negocio"></textarea>
           </div>
           <div class="field full">
-            <label>Cambios en la familia<span class="why">Boda, nacimiento, hijo que entra a la universidad…</span></label>
+            <label>Cambios en la familia</label>
             <textarea name="cambios_familia"></textarea>
           </div>
           <div class="field full">
@@ -422,7 +391,7 @@
 
 <script>
   // ─── CONFIGURA AQUÍ LA URL DE TU GOOGLE APPS SCRIPT WEB APP ───
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyBT2_Es_XT7VeclhgvA6iwW5O8hkQR7nSX9_nhjPqFx3tNB2cPaThrrMasLv3IQLYF7g/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyyWW-scfIWEl3y5gaq3TckD6XlnIwprjPJ8X4_70n-jF_EpBe5Vq6O4B9Ohac_DCtBXg/exec";
   // ────────────────────────────────────────────────────────────
 
   document.getElementById('fechaCaptura').value = new Date().toISOString().slice(0,10);
