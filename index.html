@@ -80,6 +80,17 @@
   .tab.active .num{ color:var(--oro); }
   .tab.done .num::after{ content:" ✓"; color:var(--ok); }
 
+  .rail-link{
+    display:block;
+    margin:8px 28px 0 28px;
+    padding:12px 0;
+    color:var(--oro-soft);
+    text-decoration:none;
+    font-size:13.5px;
+    border-top:1px solid var(--platino-line);
+  }
+  .rail-link:hover{ color:var(--paper); }
+
   .rail-footer{
     padding:20px 28px 0 28px; margin-top:16px; border-top:1px solid var(--platino-line);
     font-size:11px; color:var(--platino); line-height:1.6;
@@ -173,6 +184,7 @@
       <a class="tab" data-target="s6"><span class="num">06</span> Intereses</a>
       <a class="tab" data-target="s7"><span class="num">07</span> Señales de oportunidad</a>
     </nav>
+    <a class="rail-link" href="consulta.html">🔍 Consultar clientes</a>
     <div class="rail-footer">Cada envío agrega una fila nueva a la hoja de CRM. Nada se pierde: puedes llenar solo lo que sepas hoy.</div>
   </aside>
 
