@@ -1,223 +1,471 @@
-/**
- * CÓDIGO PARA GOOGLE APPS SCRIPT
- * ================================
- * Recibe los datos del formulario web y agrega/edita filas en la hoja,
- * y expone una lectura (doGet) para buscar y consultar clientes ya capturados.
- *
- * INSTRUCCIONES DE INSTALACIÓN / ACTUALIZACIÓN:
- * 1. Abre el Google Sheet donde se guardan los datos.
- * 2. Ve a Extensiones > Apps Script.
- * 3. Borra el contenido de Code.gs y pega TODO este archivo.
- * 4. Guarda el proyecto (icono de disquete).
- * 5. Clic en "Implementar" > "Gestionar implementaciones" > editar (lápiz)
- *    > Versión "Nueva versión" > Implementar.
- *    (La URL de la app web NO cambia al hacer esto, sigue siendo la misma
- *    que ya tienes puesta en formulario_clientes.html / index.html).
- * 6. La primera vez que despliegues, Google puede volver a pedir autorizar
- *    permisos (es tu propio script, es seguro aceptar).
- */
-
-// Encabezados de la hoja, en el mismo orden que los campos del formulario.
-const HEADERS = [
-  "Fecha y hora de registro",
-  "Asesor que captura",
-  "Nivel de lealtad",
-  "Fecha de captura",
-  "Nombre completo",
-  "Cómo le gusta que le llamen",
-  "Fecha de nacimiento",
-  "Estado civil",
-  "Cónyuge o pareja",
-  "Cumpleaños del cónyuge",
-  "Aniversario de matrimonio",
-  "Etapa educativa de los hijos",
-  "Hijos: nombres y edades",
-  "Escuela o universidad de los hijos",
-  "Cliente de La Unión desde",
-  "Aniversario de fundación de su empresa",
-  "Giro o industria",
-  "Número de empleados aprox.",
-  "Facturación aproximada",
-  "Canal preferido",
-  "Horarios de contacto",
-  "Frecuencia deseada",
-  "Tono preferido",
-  "Personas autorizadas",
-  "Pasatiempos y aficiones",
-  "Equipos o deportes favoritos",
-  "Restaurantes y bebidas preferidas",
-  "Destinos de viaje favoritos",
-  "Preferencias de regalo",
-  "Momentos de vida del negocio",
-  "Cambios en la familia",
-  "Referidos que ha dado"
-];
-
-// Mapea cada encabezado al "name" del campo correspondiente en el HTML.
-const FIELD_ORDER = [
-  null, // Fecha y hora de registro -> se llena automáticamente con new Date()
-  "asesor",
-  "nivel_lealtad",
-  "fecha_captura",
-  "nombre_completo",
-  "como_le_gusta_llamar",
-  "fecha_nacimiento",
-  "estado_civil",
-  "conyuge_nombre",
-  "conyuge_cumpleanos",
-  "aniversario_matrimonio",
-  "hijos_etapa_educativa",
-  "hijos_detalle",
-  "hijos_escuela",
-  "aniversario_cliente_union",
-  "aniversario_fundacion_empresa",
-  "giro_industria",
-  "num_empleados",
-  "facturacion_aproximada",
-  "canal_preferido",
-  "horarios_contacto",
-  "frecuencia_deseada",
-  "tono_preferido",
-  "personas_autorizadas",
-  "pasatiempos",
-  "equipos_deportes_favoritos",
-  "restaurantes_bebidas_preferidas",
-  "destinos_viaje_favoritos",
-  "preferencias_regalo",
-  "momentos_vida_negocio",
-  "cambios_familia",
-  "referidos_dados"
-];
-
-function getSheet() {
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Clientes")
-    || SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-}
-
-function jsonOutput(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    const sheet = getSheet();
-    ensureHeaders(sheet);
-    const data = JSON.parse(e.postData.contents);
-
-    // Edición de un cliente ya existente (viene de consulta.html).
-    if (data.__action === "update" && data.__id) {
-      const rowNum = parseInt(data.__id, 10);
-      if (!rowNum || rowNum < 2 || rowNum > sheet.getLastRow()) {
-        return jsonOutput({ result: "error", message: "Fila no encontrada" });
-      }
-      const timestampActual = sheet.getRange(rowNum, 1).getValue();
-      const row = FIELD_ORDER.map(fieldName => {
-        if (fieldName === null) return timestampActual; // conserva el timestamp original
-        return data[fieldName] || "";
-      });
-      sheet.getRange(rowNum, 1, 1, row.length).setValues([row]);
-      return jsonOutput({ result: "ok" });
-    }
-
-    // Captura normal: agrega una fila nueva.
-    const row = FIELD_ORDER.map(fieldName => {
-      if (fieldName === null) return new Date(); // timestamp automático
-      return data[fieldName] || "";
-    });
-    sheet.appendRow(row);
-
-    return jsonOutput({ result: "ok" });
-
-  } catch (err) {
-    return jsonOutput({ result: "error", message: err.toString() });
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de Conocimiento del Cliente · La Unión de Crédito Santa Fe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14171c;
+    --ink-soft:#1e232b;
+    --platino:#9aa3ad;
+    --platino-line: rgba(154,163,173,0.22);
+    --oro:#c9a227;
+    --oro-soft:#e4c968;
+    --paper:#f3efe4;
+    --paper-dim:#e9e3d3;
+    --black-tier:#0d0f13;
+    --text-on-paper:#20241f;
+    --ok:#3f7a52;
   }
-}
-
-function doGet(e) {
-  try {
-    const sheet = getSheet();
-    ensureHeaders(sheet);
-    const action = (e.parameter.action || "list");
-    const lastRow = sheet.getLastRow();
-
-    if (lastRow < 2) {
-      return jsonOutput(action === "get"
-        ? { result: "error", message: "No encontrado" }
-        : { result: "ok", clientes: [] });
-    }
-
-    const values = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
-
-    if (action === "get") {
-      const id = parseInt(e.parameter.id, 10);
-      const rowIndex = id - 2; // fila 2 de la hoja = values[0]
-      if (!id || rowIndex < 0 || rowIndex >= values.length) {
-        return jsonOutput({ result: "error", message: "No encontrado" });
-      }
-      return jsonOutput({ result: "ok", cliente: rowToObject(values[rowIndex], id) });
-    }
-
-    // action === "list", con búsqueda opcional por nombre o asesor.
-    const q = (e.parameter.q || "").toLowerCase().trim();
-    const nombreCol = FIELD_ORDER.indexOf("nombre_completo");
-    const asesorCol = FIELD_ORDER.indexOf("asesor");
-    const fechaCol = FIELD_ORDER.indexOf("fecha_captura");
-
-    const clientes = [];
-    values.forEach((dataRow, i) => {
-      const nombre = String(dataRow[nombreCol] || "");
-      const asesor = String(dataRow[asesorCol] || "");
-      if (q && !nombre.toLowerCase().includes(q) && !asesor.toLowerCase().includes(q)) return;
-
-      let fecha = dataRow[fechaCol];
-      if (fecha instanceof Date) {
-        fecha = Utilities.formatDate(fecha, Session.getScriptTimeZone(), "yyyy-MM-dd");
-      }
-      clientes.push({ id: i + 2, nombre_completo: nombre, asesor: asesor, fecha_captura: fecha || "" });
-    });
-
-    return jsonOutput({ result: "ok", clientes: clientes });
-
-  } catch (err) {
-    return jsonOutput({ result: "error", message: err.toString() });
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
   }
-}
+  h1,h2,h3{ font-family:'Fraunces', serif; font-weight:500; margin:0; }
 
-// Convierte una fila de valores en un objeto {nombre_campo: valor}, usando FIELD_ORDER.
-function rowToObject(dataRow, id) {
-  const obj = { id: id };
-  FIELD_ORDER.forEach((fieldName, i) => {
-    if (fieldName === null) return; // timestamp interno, no se expone como campo editable
-    let value = dataRow[i];
-    if (value instanceof Date) {
-      value = Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
-    }
-    obj[fieldName] = (value === null || value === undefined) ? "" : value;
+  /* Layout shell */
+  .shell{ display:flex; min-height:100vh; }
+
+  /* Sidebar dossier tabs */
+  .rail{
+    width:260px;
+    flex-shrink:0;
+    background:var(--black-tier);
+    border-right:1px solid var(--platino-line);
+    padding:32px 0 32px 0;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .rail-brand{
+    padding:0 28px 28px 28px;
+    border-bottom:1px solid var(--platino-line);
+    margin-bottom:8px;
+  }
+  .rail-brand .eyebrow{
+    color:var(--oro);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+  }
+  .rail-brand h1{
+    font-size:20px;
+    color:var(--paper);
+    margin-top:8px;
+    line-height:1.25;
+  }
+
+  nav.tabs{ display:flex; flex-direction:column; padding:12px 0; }
+  .tab{
+    display:flex; align-items:baseline; gap:12px;
+    padding:13px 28px;
+    color:var(--platino);
+    text-decoration:none;
+    border-left:2px solid transparent;
+    font-size:14px;
+    transition:.15s;
+  }
+  .tab .num{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--platino); }
+  .tab:hover{ color:var(--paper); background:rgba(201,162,39,0.05); }
+  .tab.active{ color:var(--oro-soft); border-left-color:var(--oro); background:rgba(201,162,39,0.07); }
+  .tab.active .num{ color:var(--oro); }
+  .tab.done .num::after{ content:" ✓"; color:var(--ok); }
+
+  .rail-footer{
+    padding:20px 28px 0 28px; margin-top:16px; border-top:1px solid var(--platino-line);
+    font-size:11px; color:var(--platino); line-height:1.6;
+  }
+
+  /* Main content */
+  main{ flex:1; padding:56px 64px 120px 64px; max-width:880px; }
+  .page-head{ margin-bottom:44px; }
+  .page-head .eyebrow{ font-family:'IBM Plex Mono',monospace; color:var(--oro); font-size:11px; letter-spacing:.14em; text-transform:uppercase; }
+  .page-head h2{ font-size:34px; color:var(--paper); margin-top:10px; }
+  .page-head p{ color:var(--platino); font-size:14.5px; margin-top:12px; max-width:56ch; line-height:1.6; }
+
+  .meta-row{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+    background:var(--ink-soft); border:1px solid var(--platino-line);
+    padding:20px; border-radius:6px; margin-bottom:48px;
+  }
+
+  .section{
+    background:var(--paper);
+    color:var(--text-on-paper);
+    border-radius:8px;
+    padding:36px 40px;
+    margin-bottom:28px;
+    scroll-margin-top:32px;
+    box-shadow:0 1px 0 rgba(0,0,0,0.2), 0 20px 40px -30px rgba(0,0,0,0.6);
+  }
+  .section-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:28px; }
+  .section-head .num{ font-family:'IBM Plex Mono',monospace; color:var(--oro); font-size:13px; }
+  .section-head h3{ font-size:22px; }
+
+  .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px 24px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column:1 / -1; }
+  label{ font-size:12.5px; font-weight:600; color:#3b3f33; }
+  input, select, textarea{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14.5px;
+    padding:10px 12px;
+    border-radius:4px;
+    border:1px solid #c9c3ae;
+    background:#fdfcf8;
+    color:var(--text-on-paper);
+  }
+  textarea{ resize:vertical; min-height:64px; }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--oro); box-shadow:0 0 0 3px rgba(201,162,39,0.18);
+  }
+
+  .submit-bar{
+    position:sticky; bottom:0;
+    background:linear-gradient(to top, var(--ink) 60%, transparent);
+    padding:32px 0 8px 0;
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+  }
+  #status{ font-size:13px; color:var(--platino); flex:1; }
+  #status.err{ color:#d9776a; }
+  #status.ok{ color:var(--ok); }
+  button#submitBtn{
+    background:var(--oro); color:var(--black-tier); border:none;
+    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:15px;
+    padding:15px 32px; border-radius:4px; cursor:pointer; letter-spacing:.01em;
+    transition:.15s;
+  }
+  button#submitBtn:hover{ background:var(--oro-soft); }
+  button#submitBtn:disabled{ opacity:.5; cursor:default; }
+
+  @media (max-width: 860px){
+    .shell{ flex-direction:column; }
+    .rail{ position:relative; width:100%; height:auto; }
+    main{ padding:32px 20px 80px 20px; }
+    .field-grid{ grid-template-columns:1fr; }
+    .meta-row{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="rail-brand">
+      <div class="eyebrow">La Unión de Crédito Santa Fe</div>
+      <h1>Guía de Conocimiento del Cliente</h1>
+    </div>
+    <nav class="tabs" id="tabNav">
+      <a class="tab active" data-target="s1"><span class="num">01</span> Identidad</a>
+      <a class="tab" data-target="s2"><span class="num">02</span> Familia</a>
+      <a class="tab" data-target="s3"><span class="num">03</span> Fechas clave</a>
+      <a class="tab" data-target="s4"><span class="num">04</span> El negocio</a>
+      <a class="tab" data-target="s5"><span class="num">05</span> Trato y contacto</a>
+      <a class="tab" data-target="s6"><span class="num">06</span> Intereses</a>
+      <a class="tab" data-target="s7"><span class="num">07</span> Señales de oportunidad</a>
+    </nav>
+    <div class="rail-footer">Cada envío agrega una fila nueva a la hoja de CRM. Nada se pierde: puedes llenar solo lo que sepas hoy.</div>
+  </aside>
+
+  <main>
+    <div class="page-head">
+      <div class="eyebrow">Insumo para CRM y programa de lealtad</div>
+      <h2>Expediente del cliente</h2>
+    </div>
+
+    <form id="clientForm">
+      <div class="meta-row">
+        <div class="field">
+          <label>Asesor que captura</label>
+          <input type="text" name="asesor" required>
+        </div>
+        <div class="field">
+          <label>Fecha de captura</label>
+          <input type="date" name="fecha_captura" id="fechaCaptura">
+        </div>
+      </div>
+
+      <section class="section" id="s1">
+        <div class="section-head"><span class="num">01</span><h3>Identidad y datos personales</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Nombre completo</label>
+            <input type="text" name="nombre_completo" required>
+          </div>
+          <div class="field">
+            <label>Cómo le gusta que le llamen</label>
+            <input type="text" name="como_le_gusta_llamar">
+          </div>
+          <div class="field">
+            <label>Fecha de nacimiento</label>
+            <input type="date" name="fecha_nacimiento">
+          </div>
+          <div class="field">
+            <label>Estado civil</label>
+            <select name="estado_civil">
+              <option value=""></option>
+              <option>Soltero/a</option>
+              <option>Casado/a</option>
+              <option>Unión libre</option>
+              <option>Divorciado/a</option>
+              <option>Viudo/a</option>
+              <option>Otro</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s2">
+        <div class="section-head"><span class="num">02</span><h3>Familia y vida personal</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Cónyuge o pareja</label>
+            <input type="text" name="conyuge_nombre">
+          </div>
+          <div class="field">
+            <label>Cumpleaños del cónyuge</label>
+            <input type="date" name="conyuge_cumpleanos">
+          </div>
+          <div class="field">
+            <label>Aniversario de matrimonio</label>
+            <input type="date" name="aniversario_matrimonio">
+          </div>
+          <div class="field">
+            <label>Etapa educativa de los hijos</label>
+            <select name="hijos_etapa_educativa">
+              <option value=""></option>
+              <option>Preescolar</option>
+              <option>Primaria</option>
+              <option>Secundaria</option>
+              <option>Preparatoria</option>
+              <option>Universidad</option>
+              <option>Posgrado</option>
+              <option>No aplica</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Hijos: nombres y edades</label>
+            <textarea name="hijos_detalle"></textarea>
+          </div>
+          <div class="field full">
+            <label>Escuela o universidad de los hijos</label>
+            <input type="text" name="hijos_escuela">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s3">
+        <div class="section-head"><span class="num">03</span><h3>Fechas clave de la relación</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Cliente de La Unión desde</label>
+            <input type="date" name="aniversario_cliente_union">
+          </div>
+          <div class="field">
+            <label>Aniversario de fundación de su empresa</label>
+            <input type="date" name="aniversario_fundacion_empresa">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s4">
+        <div class="section-head"><span class="num">04</span><h3>El negocio del cliente</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Giro o industria</label>
+            <input type="text" name="giro_industria">
+          </div>
+          <div class="field">
+            <label>Número de empleados aprox.</label>
+            <input type="number" name="num_empleados" min="0">
+          </div>
+          <div class="field">
+            <label>Facturación aproximada</label>
+            <input type="text" name="facturacion_aproximada">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s5">
+        <div class="section-head"><span class="num">05</span><h3>Preferencias de comunicación y trato</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Canal preferido</label>
+            <select name="canal_preferido">
+              <option value=""></option>
+              <option>WhatsApp</option>
+              <option>Llamada</option>
+              <option>Correo electrónico</option>
+              <option>Presencial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Horarios de contacto</label>
+            <input type="text" name="horarios_contacto">
+          </div>
+          <div class="field">
+            <label>Frecuencia deseada</label>
+            <select name="frecuencia_deseada">
+              <option value=""></option>
+              <option>Semanal</option>
+              <option>Quincenal</option>
+              <option>Mensual</option>
+              <option>Solo en fechas importantes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tono preferido</label>
+            <select name="tono_preferido">
+              <option value=""></option>
+              <option>Formal</option>
+              <option>Cercano</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Personas autorizadas</label>
+            <input type="text" name="personas_autorizadas">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s6">
+        <div class="section-head"><span class="num">06</span><h3>Intereses, aficiones y estilo</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Pasatiempos y aficiones</label>
+            <input type="text" name="pasatiempos">
+          </div>
+          <div class="field">
+            <label>Equipos o deportes favoritos</label>
+            <input type="text" name="equipos_deportes_favoritos">
+          </div>
+          <div class="field">
+            <label>Restaurantes y bebidas preferidas</label>
+            <input type="text" name="restaurantes_bebidas_preferidas">
+          </div>
+          <div class="field">
+            <label>Destinos de viaje favoritos</label>
+            <input type="text" name="destinos_viaje_favoritos">
+          </div>
+          <div class="field full">
+            <label>Preferencias de regalo</label>
+            <input type="text" name="preferencias_regalo">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s7">
+        <div class="section-head"><span class="num">07</span><h3>Señales y momentos de oportunidad</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Momentos de vida del negocio</label>
+            <textarea name="momentos_vida_negocio"></textarea>
+          </div>
+          <div class="field full">
+            <label>Cambios en la familia</label>
+            <textarea name="cambios_familia"></textarea>
+          </div>
+          <div class="field full">
+            <label>Referidos que ha dado</label>
+            <textarea name="referidos_dados"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <div class="submit-bar">
+        <div id="status"></div>
+        <button type="submit" id="submitBtn">Guardar en el expediente</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+  // ─── CONFIGURA AQUÍ LA URL DE TU GOOGLE APPS SCRIPT WEB APP ───
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyyWW-scfIWEl3y5gaq3TckD6XlnIwprjPJ8X4_70n-jF_EpBe5Vq6O4B9Ohac_DCtBXg/exec";
+  // ────────────────────────────────────────────────────────────
+
+  document.getElementById('fechaCaptura').value = new Date().toISOString().slice(0,10);
+
+  // Sidebar nav: click to scroll, scrollspy to highlight active
+  const tabs = [...document.querySelectorAll('.tab')];
+  const sections = tabs.map(t => document.getElementById(t.dataset.target));
+  tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById(tab.dataset.target).scrollIntoView({behavior:'smooth', block:'start'});
+    });
   });
-  return obj;
-}
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = sections.indexOf(entry.target);
+        tabs.forEach(t => t.classList.remove('active'));
+        if (idx > -1) tabs[idx].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
 
-// Crea la fila de encabezados si la hoja está vacía.
-function ensureHeaders(sheet) {
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
-    sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight("bold");
-    sheet.setFrozenRows(1);
+  // Mark a tab "done" once every visible input in that section has a value
+  function refreshDoneState(){
+    sections.forEach((sec, idx) => {
+      const inputs = sec.querySelectorAll('input, select, textarea');
+      const filled = [...inputs].some(i => i.value.trim() !== '');
+      tabs[idx].classList.toggle('done', filled);
+    });
   }
-}
+  document.getElementById('clientForm').addEventListener('input', refreshDoneState);
 
-// Función opcional para probar manualmente desde el editor de Apps Script.
-function pruebaManual() {
-  const fakeEvent = {
-    postData: {
-      contents: JSON.stringify({
-        asesor: "Hector",
-        nivel_lealtad: "Oro",
-        nombre_completo: "Cliente de Prueba"
-      })
+  // Submit
+  const form = document.getElementById('clientForm');
+  const statusEl = document.getElementById('status');
+  const btn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (WEB_APP_URL.includes('PEGA_AQUI')) {
+      statusEl.textContent = 'Falta configurar la URL de Google Apps Script en el código (WEB_APP_URL).';
+      statusEl.className = 'err';
+      return;
     }
-  };
-  doPost(fakeEvent);
-}
+
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    btn.disabled = true;
+    statusEl.textContent = 'Guardando…';
+    statusEl.className = '';
+
+    try {
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Apps Script no siempre responde con headers CORS legibles
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      });
+      statusEl.textContent = '✓ Guardado. Puedes capturar al siguiente cliente.';
+      statusEl.className = 'ok';
+      form.reset();
+      document.getElementById('fechaCaptura').value = new Date().toISOString().slice(0,10);
+      refreshDoneState();
+    } catch (err) {
+      statusEl.textContent = 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.';
+      statusEl.className = 'err';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>
