@@ -1,0 +1,146 @@
+/**
+ * CÓDIGO PARA GOOGLE APPS SCRIPT
+ * ================================
+ * Este script recibe los datos del formulario web y agrega una fila
+ * nueva en la hoja de cálculo cada vez que alguien lo llena.
+ *
+ * INSTRUCCIONES DE INSTALACIÓN:
+ * 1. Crea (o abre) el Google Sheet donde quieres guardar los datos.
+ * 2. Ve a Extensiones > Apps Script.
+ * 3. Borra el contenido de Code.gs y pega TODO este archivo.
+ * 4. Guarda el proyecto (icono de disquete).
+ * 5. Haz clic en "Implementar" > "Nueva implementación".
+ *    - Tipo: "Aplicación web"A
+ *    - Ejecutar como: "Yo (tu correo)"
+ *    - Quién tiene acceso: "Cualquier usuario"
+ * 6. Copia la URL que te da ("URL de la aplicación web").
+ * 7. Pega esa URL en formulario_clientes.html, en la constante WEB_APP_URL.
+ * 8. La primera vez que despliegues, Google te pedirá autorizar permisos
+ *    (es tu propio script, es seguro aceptar).
+ *
+ * Cada vez que necesites editar este código, después de guardar debes
+ * volver a "Implementar" > "Gestionar implementaciones" > editar (lápiz)
+ * > Versión "Nueva versión" > Implementar, para que los cambios surtan efecto.
+ */
+
+// Encabezados de la hoja, en el mismo orden que los campos del formulario.
+const HEADERS = [
+  "Fecha y hora de registro",
+  "Asesor que captura",
+  "Nivel de lealtad",
+  "Fecha de captura",
+  "Nombre completo",
+  "Cómo le gusta que le llamen",
+  "Fecha de nacimiento",
+  "Estado civil",
+  "Cónyuge o pareja",
+  "Cumpleaños del cónyuge",
+  "Aniversario de matrimonio",
+  "Etapa educativa de los hijos",
+  "Hijos: nombres y edades",
+  "Escuela o universidad de los hijos",
+  "Cliente de La Unión desde",
+  "Aniversario de fundación de su empresa",
+  "Giro o industria",
+  "Número de empleados aprox.",
+  "Facturación aproximada",
+  "Canal preferido",
+  "Horarios de contacto",
+  "Frecuencia deseada",
+  "Tono preferido",
+  "Personas autorizadas",
+  "Pasatiempos y aficiones",
+  "Equipos o deportes favoritos",
+  "Restaurantes y bebidas preferidas",
+  "Destinos de viaje favoritos",
+  "Preferencias de regalo",
+  "Momentos de vida del negocio",
+  "Cambios en la familia",
+  "Referidos que ha dado"
+];
+
+// Mapea cada encabezado al "name" del campo correspondiente en el HTML.
+const FIELD_ORDER = [
+  null, // Fecha y hora de registro -> se llena automáticamente con new Date()
+  "asesor",
+  "nivel_lealtad",
+  "fecha_captura",
+  "nombre_completo",
+  "como_le_gusta_llamar",
+  "fecha_nacimiento",
+  "estado_civil",
+  "conyuge_nombre",
+  "conyuge_cumpleanos",
+  "aniversario_matrimonio",
+  "hijos_etapa_educativa",
+  "hijos_detalle",
+  "hijos_escuela",
+  "aniversario_cliente_union",
+  "aniversario_fundacion_empresa",
+  "giro_industria",
+  "num_empleados",
+  "facturacion_aproximada",
+  "canal_preferido",
+  "horarios_contacto",
+  "frecuencia_deseada",
+  "tono_preferido",
+  "personas_autorizadas",
+  "pasatiempos",
+  "equipos_deportes_favoritos",
+  "restaurantes_bebidas_preferidas",
+  "destinos_viaje_favoritos",
+  "preferencias_regalo",
+  "momentos_vida_negocio",
+  "cambios_familia",
+  "referidos_dados"
+];
+
+function doPost(e) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Clientes")
+      || SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+    ensureHeaders(sheet);
+
+    const data = JSON.parse(e.postData.contents);
+
+    const row = FIELD_ORDER.map(fieldName => {
+      if (fieldName === null) return new Date(); // timestamp automático
+      return data[fieldName] || "";
+    });
+
+    sheet.appendRow(row);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: "ok" }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Crea la fila de encabezados si la hoja está vacía.
+function ensureHeaders(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(HEADERS);
+    sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+}
+
+// Función opcional para probar manualmente desde el editor de Apps Script.
+function pruebaManual() {
+  const fakeEvent = {
+    postData: {
+      contents: JSON.stringify({
+        asesor: "Hector",
+        nivel_lealtad: "Oro",
+        nombre_completo: "Cliente de Prueba"
+      })
+    }
+  };
+  doPost(fakeEvent);
+}
