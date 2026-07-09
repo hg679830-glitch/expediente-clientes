@@ -88,6 +88,17 @@
   }
   .rail-link:hover{ color:var(--paper); }
 
+  .nav-divider{
+    margin:14px 28px 2px 28px;
+    padding-top:14px;
+    border-top:1px solid var(--platino-line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--oro);
+  }
+
   .rail-footer{
     padding:20px 28px 0 28px; margin-top:16px; border-top:1px solid var(--platino-line);
     font-size:11px; color:var(--platino); line-height:1.6;
@@ -122,6 +133,7 @@
   .field{ display:flex; flex-direction:column; gap:6px; }
   .field.full{ grid-column:1 / -1; }
   label{ font-size:12.5px; font-weight:600; color:#3b3f33; }
+  .hint{ font-size:11px; font-style:italic; color:#767a68; margin-top:-4px; }
   input, select, textarea{
     font-family:'IBM Plex Sans', sans-serif;
     font-size:14.5px;
@@ -154,6 +166,51 @@
   button#guardarBtn:hover{ background:var(--oro-soft); }
   button#guardarBtn:disabled{ opacity:.5; cursor:default; }
 
+  #firmantesLista{ counter-reset:firmante; margin-top:10px; }
+  .firmante-row{
+    display:grid;
+    grid-template-columns: 24px 1.2fr 1fr 1.2fr 0.9fr auto;
+    gap:10px;
+    padding:12px;
+    margin-bottom:10px;
+    align-items:center;
+    background:var(--paper-dim);
+    border:1px solid #ded6c0;
+    border-radius:6px;
+    counter-increment:firmante;
+  }
+  .firmante-row::before{
+    content:counter(firmante);
+    display:flex; align-items:center; justify-content:center;
+    width:24px; height:24px; border-radius:50%;
+    background:var(--oro); color:var(--black-tier);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+  }
+  .firmante-row input, .firmante-row select{ margin:0; }
+  .quitar-firmante{
+    background:none; border:1px solid #c9c3ae; color:#8a5c4a;
+    border-radius:4px; width:34px; height:38px; cursor:pointer; font-size:16px; line-height:1;
+  }
+  .quitar-firmante:hover{ background:#f3e8e4; }
+  .btn-secundario{
+    margin-top:6px;
+    background:transparent; color:var(--text-on-paper); border:1px solid #c9c3ae;
+    padding:8px 14px; border-radius:4px; cursor:pointer; font-size:13px;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .btn-secundario:hover{ background:#efe9da; }
+
+  .opciones-pill{ display:flex; gap:8px; flex-wrap:wrap; }
+  .opciones-pill .pill{
+    padding:9px 16px; border-radius:999px; border:1px solid #c9c3ae;
+    background:#fdfcf8; color:var(--text-on-paper); font-size:13.5px; cursor:pointer;
+    font-family:'IBM Plex Sans', sans-serif; transition:.15s;
+  }
+  .opciones-pill .pill:hover{ border-color:var(--oro); }
+  .opciones-pill .pill.selected{
+    background:var(--oro); border-color:var(--oro); color:var(--black-tier); font-weight:600;
+  }
+
   .buscador{
     background:var(--ink-soft); border:1px solid var(--platino-line);
     padding:20px; border-radius:6px; margin-bottom:28px;
@@ -176,6 +233,8 @@
     main{ padding:32px 20px 80px 20px; }
     .field-grid{ grid-template-columns:1fr; }
     .meta-row{ grid-template-columns:1fr; }
+    .firmante-row{ grid-template-columns:1fr; }
+    .firmante-row::before{ display:none; }
   }
 </style>
 </head>
@@ -195,6 +254,15 @@
       <a class="tab" data-target="s5"><span class="num">05</span> Trato y contacto</a>
       <a class="tab" data-target="s6"><span class="num">06</span> Intereses</a>
       <a class="tab" data-target="s7"><span class="num">07</span> Señales de oportunidad</a>
+      <div class="nav-divider">Ficha de alta de socio</div>
+      <a class="tab" data-target="s8"><span class="num">08</span> Identificación del socio</a>
+      <a class="tab" data-target="s9"><span class="num">09</span> Contacto y ubicación</a>
+      <a class="tab" data-target="s10"><span class="num">10</span> Representación y firmas</a>
+      <a class="tab" data-target="s11"><span class="num">11</span> Perfil y operación</a>
+      <a class="tab" data-target="s12"><span class="num">12</span> Vida del crédito</a>
+      <a class="tab" data-target="s13"><span class="num">13</span> Vida de la inversión</a>
+      <a class="tab" data-target="s14"><span class="num">14</span> Grupo empresarial</a>
+      <a class="tab" data-target="s15"><span class="num">15</span> Relación comercial</a>
     </nav>
     <a class="rail-link" href="index.html">＋ Nueva captura</a>
     <div class="rail-footer">Busca un cliente ya capturado para ver o corregir su expediente completo.</div>
@@ -410,6 +478,213 @@
         </div>
       </section>
 
+      <section class="section" id="s8">
+        <div class="section-head"><span class="num">08</span><h3>Identificación del socio</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>N.º de socio</label>
+            <input type="text" name="numero_socio">
+          </div>
+          <div class="field">
+            <label>Fecha de alta</label>
+            <input type="date" name="fecha_alta">
+          </div>
+          <div class="field">
+            <label>Tipo de persona</label>
+            <div class="opciones-pill" data-field="tipo_persona">
+              <button type="button" class="pill" data-value="Persona física">Persona física</button>
+              <button type="button" class="pill" data-value="Persona moral">Persona moral</button>
+            </div>
+            <input type="hidden" name="tipo_persona">
+          </div>
+          <div class="field full">
+            <label>Nombre / razón social</label>
+            <span class="hint">Tal como aparece en la Constancia de Situación Fiscal</span>
+            <input type="text" name="nombre_razon_social">
+          </div>
+          <div class="field">
+            <label>Régimen fiscal</label>
+            <input type="text" name="regimen_fiscal">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s9">
+        <div class="section-head"><span class="num">09</span><h3>Contacto y ubicación</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Domicilio fiscal</label>
+            <textarea name="domicilio_fiscal"></textarea>
+          </div>
+          <div class="field full">
+            <label>Domicilio operativo (solo si es distinto al fiscal)</label>
+            <textarea name="domicilio_operativo"></textarea>
+          </div>
+          <div class="field">
+            <label>Teléfono(s)</label>
+            <input type="text" name="telefonos">
+          </div>
+          <div class="field">
+            <label>Correo(s) electrónico(s)</label>
+            <input type="text" name="correos_electronicos">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s10">
+        <div class="section-head"><span class="num">10</span><h3>Representación y firmas autorizadas</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Contacto operativo (nombre y puesto)</label>
+            <input type="text" name="contacto_operativo">
+          </div>
+          <div class="field full">
+            <label>Representante legal (nombre, puesto y datos del poder notarial: escritura, notario, fecha)</label>
+            <textarea name="representante_legal"></textarea>
+          </div>
+        </div>
+        <div class="field full" style="margin-top:20px;">
+          <label>Firmas autorizadas</label>
+          <div id="firmantesLista"></div>
+          <button type="button" id="agregarFirmanteBtn" class="btn-secundario">+ Agregar firmante</button>
+        </div>
+      </section>
+
+      <section class="section" id="s11">
+        <div class="section-head"><span class="num">11</span><h3>Perfil y tipo de operación</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Vocación como socio</label>
+            <div class="opciones-pill" data-field="vocacion_socio">
+              <button type="button" class="pill" data-value="Acreditado">Acreditado</button>
+              <button type="button" class="pill" data-value="Inversionista">Inversionista</button>
+              <button type="button" class="pill" data-value="Ambos">Ambos</button>
+            </div>
+            <input type="hidden" name="vocacion_socio">
+          </div>
+          <div class="field">
+            <label>Productos que usa</label>
+            <div class="opciones-pill" data-field="productos_que_usa">
+              <button type="button" class="pill" data-value="Crédito">Crédito</button>
+              <button type="button" class="pill" data-value="Inversión">Inversión</button>
+              <button type="button" class="pill" data-value="Ambos">Ambos</button>
+            </div>
+            <input type="hidden" name="productos_que_usa">
+          </div>
+          <div class="field">
+            <label>Operación dominante</label>
+            <span class="hint">Si es mixto, indicar cuál pesa más</span>
+            <input type="text" name="operacion_dominante">
+          </div>
+          <div class="field full">
+            <label>Productos contratados</label>
+            <span class="hint">Línea simple, revolvente, arrendamiento, factoraje, pagaré con rendimiento liquidable, etc.</span>
+            <input type="text" name="productos_contratados">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s12">
+        <div class="section-head"><span class="num">12</span><h3>Vida del crédito · Acreditados</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Tipo de línea</label>
+            <span class="hint">Simple / revolvente / cuenta corriente</span>
+            <input type="text" name="tipo_linea">
+          </div>
+          <div class="field">
+            <label>Monto autorizado</label>
+            <input type="text" name="monto_autorizado">
+          </div>
+          <div class="field">
+            <label>Saldo dispuesto actual</label>
+            <input type="text" name="saldo_dispuesto_actual">
+          </div>
+          <div class="field">
+            <label>Tasa pactada</label>
+            <span class="hint">Fija / variable — ¿sobre TIIE + puntos?</span>
+            <input type="text" name="tasa_pactada_credito">
+          </div>
+          <div class="field">
+            <label>Plazo</label>
+            <input type="text" name="plazo_credito">
+          </div>
+          <div class="field">
+            <label>Fecha de vencimiento</label>
+            <input type="date" name="fecha_vencimiento_credito">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s13">
+        <div class="section-head"><span class="num">13</span><h3>Vida de la inversión · Inversionistas</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Monto invertido</label>
+            <input type="text" name="monto_invertido">
+          </div>
+          <div class="field">
+            <label>Saldo actual</label>
+            <input type="text" name="saldo_actual_inversion">
+          </div>
+          <div class="field">
+            <label>Instrumento</label>
+            <span class="hint">Pagaré con rendimiento liquidable, depósito a plazo, etc.</span>
+            <input type="text" name="instrumento_inversion">
+          </div>
+          <div class="field">
+            <label>Tasa pactada y referencia</label>
+            <span class="hint">¿Ligada a TIIE / CETES?</span>
+            <input type="text" name="tasa_pactada_inversion">
+          </div>
+          <div class="field">
+            <label>Plazo</label>
+            <input type="text" name="plazo_inversion">
+          </div>
+          <div class="field">
+            <label>Fecha de vencimiento</label>
+            <input type="date" name="fecha_vencimiento_inversion">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s14">
+        <div class="section-head"><span class="num">14</span><h3>Grupo empresarial</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>¿Forma parte de un grupo?</label>
+            <div class="opciones-pill" data-field="forma_parte_grupo">
+              <button type="button" class="pill" data-value="Sí">Sí</button>
+              <button type="button" class="pill" data-value="No">No</button>
+            </div>
+            <input type="hidden" name="forma_parte_grupo">
+          </div>
+          <div class="field">
+            <label>Nombre del grupo</label>
+            <input type="text" name="nombre_grupo">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s15">
+        <div class="section-head"><span class="num">15</span><h3>Relación comercial</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Ejecutivo de cuenta</label>
+            <input type="text" name="ejecutivo_cuenta">
+          </div>
+          <div class="field">
+            <label>Frecuencia de contacto</label>
+            <input type="text" name="frecuencia_contacto">
+          </div>
+          <div class="field full">
+            <label>Última interacción</label>
+            <span class="hint">Fecha y tipo de contacto</span>
+            <input type="text" name="ultima_interaccion">
+          </div>
+        </div>
+      </section>
+
       <div class="submit-bar">
         <div id="status"></div>
         <button type="submit" id="guardarBtn">Guardar cambios</button>
@@ -451,6 +726,74 @@
   let clientes = [];
   let seleccionadoId = null;
   let buscarTimeout = null;
+
+  // Campos tipo "casilla" (persona física/moral, vocación, etc.) como botones de pastilla
+  document.querySelectorAll('.opciones-pill').forEach(group => {
+    const hidden = document.querySelector(`input[name="${group.dataset.field}"]`);
+    group.querySelectorAll('.pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        group.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        hidden.value = pill.dataset.value;
+      });
+    });
+  });
+  function sincronizarPills(){
+    document.querySelectorAll('.opciones-pill').forEach(group => {
+      const hidden = document.querySelector(`input[name="${group.dataset.field}"]`);
+      const val = hidden ? hidden.value : '';
+      group.querySelectorAll('.pill').forEach(p => p.classList.toggle('selected', p.dataset.value === val));
+    });
+  }
+
+  // Firmas autorizadas: filas dinámicas (se guardan/leen como texto, una firma por línea)
+  const firmantesLista = document.getElementById('firmantesLista');
+  function agregarFirmanteRow(valores = {}) {
+    const row = document.createElement('div');
+    row.className = 'firmante-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Nombre del firmante" class="f-nombre" value="${valores.nombre || ''}">
+      <input type="text" placeholder="Puesto" class="f-puesto" value="${valores.puesto || ''}">
+      <input type="text" placeholder="Facultades" class="f-facultades" value="${valores.facultades || ''}">
+      <select class="f-tipo">
+        <option value="">Individual / Manc.</option>
+        <option ${valores.tipo === 'Individual' ? 'selected' : ''}>Individual</option>
+        <option ${valores.tipo === 'Mancomunada' ? 'selected' : ''}>Mancomunada</option>
+      </select>
+      <button type="button" class="quitar-firmante" title="Quitar">×</button>
+    `;
+    row.querySelector('.quitar-firmante').addEventListener('click', () => row.remove());
+    firmantesLista.appendChild(row);
+  }
+  document.getElementById('agregarFirmanteBtn').addEventListener('click', () => agregarFirmanteRow());
+
+  function serializarFirmantes() {
+    const filas = [...firmantesLista.querySelectorAll('.firmante-row')];
+    return filas
+      .map(f => {
+        const nombre = f.querySelector('.f-nombre').value.trim();
+        const puesto = f.querySelector('.f-puesto').value.trim();
+        const facultades = f.querySelector('.f-facultades').value.trim();
+        const tipo = f.querySelector('.f-tipo').value.trim();
+        if (!nombre && !puesto && !facultades && !tipo) return null;
+        return [nombre, puesto, facultades, tipo].join(' — ');
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  function cargarFirmantes(texto) {
+    firmantesLista.innerHTML = '';
+    const filas = (texto || '').split('\n').filter(Boolean);
+    if (filas.length === 0) {
+      agregarFirmanteRow();
+      return;
+    }
+    filas.forEach(linea => {
+      const [nombre, puesto, facultades, tipo] = linea.split(' — ');
+      agregarFirmanteRow({ nombre, puesto, facultades, tipo });
+    });
+  }
 
   async function cargarClientes(q) {
     resultadosEl.innerHTML = '<li class="cargando">Buscando…</li>';
@@ -503,6 +846,8 @@
         const field = form.elements.namedItem(key);
         if (field) field.value = value ?? '';
       }
+      cargarFirmantes(data.cliente.firmas_autorizadas);
+      sincronizarPills();
       form.style.display = '';
       statusEl.textContent = '';
       statusEl.className = '';
@@ -518,6 +863,7 @@
     if (!seleccionadoId) return;
 
     const data = Object.fromEntries(new FormData(form).entries());
+    data.firmas_autorizadas = serializarFirmantes();
     data.__action = 'update';
     data.__id = seleccionadoId;
 
