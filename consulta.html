@@ -1,146 +1,551 @@
-/**
- * CÓDIGO PARA GOOGLE APPS SCRIPT
- * ================================
- * Este script recibe los datos del formulario web y agrega una fila
- * nueva en la hoja de cálculo cada vez que alguien lo llena.
- *
- * INSTRUCCIONES DE INSTALACIÓN:
- * 1. Crea (o abre) el Google Sheet donde quieres guardar los datos.
- * 2. Ve a Extensiones > Apps Script.
- * 3. Borra el contenido de Code.gs y pega TODO este archivo.
- * 4. Guarda el proyecto (icono de disquete).
- * 5. Haz clic en "Implementar" > "Nueva implementación".
- *    - Tipo: "Aplicación web"A
- *    - Ejecutar como: "Yo (tu correo)"
- *    - Quién tiene acceso: "Cualquier usuario"
- * 6. Copia la URL que te da ("URL de la aplicación web").
- * 7. Pega esa URL en formulario_clientes.html, en la constante WEB_APP_URL.
- * 8. La primera vez que despliegues, Google te pedirá autorizar permisos
- *    (es tu propio script, es seguro aceptar).
- *
- * Cada vez que necesites editar este código, después de guardar debes
- * volver a "Implementar" > "Gestionar implementaciones" > editar (lápiz)
- * > Versión "Nueva versión" > Implementar, para que los cambios surtan efecto.
- */
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultar clientes · La Unión de Crédito Santa Fe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14171c;
+    --ink-soft:#1e232b;
+    --platino:#9aa3ad;
+    --platino-line: rgba(154,163,173,0.22);
+    --oro:#c9a227;
+    --oro-soft:#e4c968;
+    --paper:#f3efe4;
+    --paper-dim:#e9e3d3;
+    --black-tier:#0d0f13;
+    --text-on-paper:#20241f;
+    --ok:#3f7a52;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Fraunces', serif; font-weight:500; margin:0; }
 
-// Encabezados de la hoja, en el mismo orden que los campos del formulario.
-const HEADERS = [
-  "Fecha y hora de registro",
-  "Asesor que captura",
-  "Nivel de lealtad",
-  "Fecha de captura",
-  "Nombre completo",
-  "Cómo le gusta que le llamen",
-  "Fecha de nacimiento",
-  "Estado civil",
-  "Cónyuge o pareja",
-  "Cumpleaños del cónyuge",
-  "Aniversario de matrimonio",
-  "Etapa educativa de los hijos",
-  "Hijos: nombres y edades",
-  "Escuela o universidad de los hijos",
-  "Cliente de La Unión desde",
-  "Aniversario de fundación de su empresa",
-  "Giro o industria",
-  "Número de empleados aprox.",
-  "Facturación aproximada",
-  "Canal preferido",
-  "Horarios de contacto",
-  "Frecuencia deseada",
-  "Tono preferido",
-  "Personas autorizadas",
-  "Pasatiempos y aficiones",
-  "Equipos o deportes favoritos",
-  "Restaurantes y bebidas preferidas",
-  "Destinos de viaje favoritos",
-  "Preferencias de regalo",
-  "Momentos de vida del negocio",
-  "Cambios en la familia",
-  "Referidos que ha dado"
-];
+  .shell{ display:flex; min-height:100vh; }
 
-// Mapea cada encabezado al "name" del campo correspondiente en el HTML.
-const FIELD_ORDER = [
-  null, // Fecha y hora de registro -> se llena automáticamente con new Date()
-  "asesor",
-  "nivel_lealtad",
-  "fecha_captura",
-  "nombre_completo",
-  "como_le_gusta_llamar",
-  "fecha_nacimiento",
-  "estado_civil",
-  "conyuge_nombre",
-  "conyuge_cumpleanos",
-  "aniversario_matrimonio",
-  "hijos_etapa_educativa",
-  "hijos_detalle",
-  "hijos_escuela",
-  "aniversario_cliente_union",
-  "aniversario_fundacion_empresa",
-  "giro_industria",
-  "num_empleados",
-  "facturacion_aproximada",
-  "canal_preferido",
-  "horarios_contacto",
-  "frecuencia_deseada",
-  "tono_preferido",
-  "personas_autorizadas",
-  "pasatiempos",
-  "equipos_deportes_favoritos",
-  "restaurantes_bebidas_preferidas",
-  "destinos_viaje_favoritos",
-  "preferencias_regalo",
-  "momentos_vida_negocio",
-  "cambios_familia",
-  "referidos_dados"
-];
+  .rail{
+    width:260px;
+    flex-shrink:0;
+    background:var(--black-tier);
+    border-right:1px solid var(--platino-line);
+    padding:32px 0 32px 0;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .rail-brand{
+    padding:0 28px 28px 28px;
+    border-bottom:1px solid var(--platino-line);
+    margin-bottom:8px;
+  }
+  .rail-brand .eyebrow{
+    color:var(--oro);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+  }
+  .rail-brand h1{
+    font-size:20px;
+    color:var(--paper);
+    margin-top:8px;
+    line-height:1.25;
+  }
 
-function doPost(e) {
-  try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Clientes")
-      || SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  nav.tabs{ display:flex; flex-direction:column; padding:12px 0; }
+  .tab{
+    display:flex; align-items:baseline; gap:12px;
+    padding:13px 28px;
+    color:var(--platino);
+    text-decoration:none;
+    border-left:2px solid transparent;
+    font-size:14px;
+    transition:.15s;
+  }
+  .tab .num{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--platino); }
+  .tab:hover{ color:var(--paper); background:rgba(201,162,39,0.05); }
+  .tab.active{ color:var(--oro-soft); border-left-color:var(--oro); background:rgba(201,162,39,0.07); }
+  .tab.active .num{ color:var(--oro); }
 
-    ensureHeaders(sheet);
+  .rail-link{
+    display:block;
+    margin:8px 28px 0 28px;
+    padding:12px 0;
+    color:var(--oro-soft);
+    text-decoration:none;
+    font-size:13.5px;
+    border-top:1px solid var(--platino-line);
+  }
+  .rail-link:hover{ color:var(--paper); }
 
-    const data = JSON.parse(e.postData.contents);
+  .rail-footer{
+    padding:20px 28px 0 28px; margin-top:16px; border-top:1px solid var(--platino-line);
+    font-size:11px; color:var(--platino); line-height:1.6;
+  }
 
-    const row = FIELD_ORDER.map(fieldName => {
-      if (fieldName === null) return new Date(); // timestamp automático
-      return data[fieldName] || "";
+  main{ flex:1; padding:56px 64px 120px 64px; max-width:880px; }
+  .page-head{ margin-bottom:44px; }
+  .page-head .eyebrow{ font-family:'IBM Plex Mono',monospace; color:var(--oro); font-size:11px; letter-spacing:.14em; text-transform:uppercase; }
+  .page-head h2{ font-size:34px; color:var(--paper); margin-top:10px; }
+  .page-head p{ color:var(--platino); font-size:14.5px; margin-top:12px; max-width:56ch; line-height:1.6; }
+
+  .meta-row{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+    background:var(--ink-soft); border:1px solid var(--platino-line);
+    padding:20px; border-radius:6px; margin-bottom:48px;
+  }
+
+  .section{
+    background:var(--paper);
+    color:var(--text-on-paper);
+    border-radius:8px;
+    padding:36px 40px;
+    margin-bottom:28px;
+    scroll-margin-top:32px;
+    box-shadow:0 1px 0 rgba(0,0,0,0.2), 0 20px 40px -30px rgba(0,0,0,0.6);
+  }
+  .section-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:28px; }
+  .section-head .num{ font-family:'IBM Plex Mono',monospace; color:var(--oro); font-size:13px; }
+  .section-head h3{ font-size:22px; }
+
+  .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px 24px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column:1 / -1; }
+  label{ font-size:12.5px; font-weight:600; color:#3b3f33; }
+  input, select, textarea{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14.5px;
+    padding:10px 12px;
+    border-radius:4px;
+    border:1px solid #c9c3ae;
+    background:#fdfcf8;
+    color:var(--text-on-paper);
+  }
+  textarea{ resize:vertical; min-height:64px; }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--oro); box-shadow:0 0 0 3px rgba(201,162,39,0.18);
+  }
+
+  .submit-bar{
+    position:sticky; bottom:0;
+    background:linear-gradient(to top, var(--ink) 60%, transparent);
+    padding:32px 0 8px 0;
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+  }
+  #status{ font-size:13px; color:var(--platino); flex:1; }
+  #status.err{ color:#d9776a; }
+  #status.ok{ color:var(--ok); }
+  button#guardarBtn{
+    background:var(--oro); color:var(--black-tier); border:none;
+    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:15px;
+    padding:15px 32px; border-radius:4px; cursor:pointer; letter-spacing:.01em;
+    transition:.15s;
+  }
+  button#guardarBtn:hover{ background:var(--oro-soft); }
+  button#guardarBtn:disabled{ opacity:.5; cursor:default; }
+
+  .buscador{
+    background:var(--ink-soft); border:1px solid var(--platino-line);
+    padding:20px; border-radius:6px; margin-bottom:28px;
+  }
+  .buscador input{ width:100%; }
+  .resultados{ list-style:none; margin:16px 0 0 0; padding:0; display:flex; flex-direction:column; gap:2px; max-height:340px; overflow-y:auto; }
+  .resultados li{
+    padding:12px 14px; border-radius:4px; cursor:pointer;
+    color:var(--paper); font-size:14px;
+    display:flex; justify-content:space-between; gap:12px;
+  }
+  .resultados li:hover{ background:rgba(201,162,39,0.1); }
+  .resultados li.selected{ background:rgba(201,162,39,0.18); color:var(--oro-soft); }
+  .resultados li .asesor-fecha{ color:var(--platino); font-size:12.5px; white-space:nowrap; }
+  .resultados .vacio, .resultados .cargando{ color:var(--platino); font-size:13.5px; padding:8px 14px; cursor:default; }
+
+  @media (max-width: 860px){
+    .shell{ flex-direction:column; }
+    .rail{ position:relative; width:100%; height:auto; }
+    main{ padding:32px 20px 80px 20px; }
+    .field-grid{ grid-template-columns:1fr; }
+    .meta-row{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="rail-brand">
+      <div class="eyebrow">La Unión de Crédito Santa Fe</div>
+      <h1>Guía de Conocimiento del Cliente</h1>
+    </div>
+    <nav class="tabs" id="tabNav">
+      <a class="tab active" data-target="s1"><span class="num">01</span> Identidad</a>
+      <a class="tab" data-target="s2"><span class="num">02</span> Familia</a>
+      <a class="tab" data-target="s3"><span class="num">03</span> Fechas clave</a>
+      <a class="tab" data-target="s4"><span class="num">04</span> El negocio</a>
+      <a class="tab" data-target="s5"><span class="num">05</span> Trato y contacto</a>
+      <a class="tab" data-target="s6"><span class="num">06</span> Intereses</a>
+      <a class="tab" data-target="s7"><span class="num">07</span> Señales de oportunidad</a>
+    </nav>
+    <a class="rail-link" href="index.html">＋ Nueva captura</a>
+    <div class="rail-footer">Busca un cliente ya capturado para ver o corregir su expediente completo.</div>
+  </aside>
+
+  <main>
+    <div class="page-head">
+      <div class="eyebrow">Consulta y edición</div>
+      <h2>Buscar expediente</h2>
+    </div>
+
+    <div class="buscador">
+      <input type="text" id="buscarInput" placeholder="Buscar por nombre del cliente o asesor…">
+      <ul class="resultados" id="resultados"><li class="cargando">Cargando…</li></ul>
+    </div>
+
+    <form id="expedienteForm" style="display:none;">
+      <div class="meta-row">
+        <div class="field">
+          <label>Asesor que captura</label>
+          <input type="text" name="asesor">
+        </div>
+        <div class="field">
+          <label>Fecha de captura</label>
+          <input type="date" name="fecha_captura">
+        </div>
+      </div>
+
+      <section class="section" id="s1">
+        <div class="section-head"><span class="num">01</span><h3>Identidad y datos personales</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Nombre completo</label>
+            <input type="text" name="nombre_completo">
+          </div>
+          <div class="field">
+            <label>Cómo le gusta que le llamen</label>
+            <input type="text" name="como_le_gusta_llamar">
+          </div>
+          <div class="field">
+            <label>Fecha de nacimiento</label>
+            <input type="date" name="fecha_nacimiento">
+          </div>
+          <div class="field">
+            <label>Estado civil</label>
+            <select name="estado_civil">
+              <option value=""></option>
+              <option>Soltero/a</option>
+              <option>Casado/a</option>
+              <option>Unión libre</option>
+              <option>Divorciado/a</option>
+              <option>Viudo/a</option>
+              <option>Otro</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s2">
+        <div class="section-head"><span class="num">02</span><h3>Familia y vida personal</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Cónyuge o pareja</label>
+            <input type="text" name="conyuge_nombre">
+          </div>
+          <div class="field">
+            <label>Cumpleaños del cónyuge</label>
+            <input type="date" name="conyuge_cumpleanos">
+          </div>
+          <div class="field">
+            <label>Aniversario de matrimonio</label>
+            <input type="date" name="aniversario_matrimonio">
+          </div>
+          <div class="field">
+            <label>Etapa educativa de los hijos</label>
+            <select name="hijos_etapa_educativa">
+              <option value=""></option>
+              <option>Preescolar</option>
+              <option>Primaria</option>
+              <option>Secundaria</option>
+              <option>Preparatoria</option>
+              <option>Universidad</option>
+              <option>Posgrado</option>
+              <option>No aplica</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Hijos: nombres y edades</label>
+            <textarea name="hijos_detalle"></textarea>
+          </div>
+          <div class="field full">
+            <label>Escuela o universidad de los hijos</label>
+            <input type="text" name="hijos_escuela">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s3">
+        <div class="section-head"><span class="num">03</span><h3>Fechas clave de la relación</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Cliente de La Unión desde</label>
+            <input type="date" name="aniversario_cliente_union">
+          </div>
+          <div class="field">
+            <label>Aniversario de fundación de su empresa</label>
+            <input type="date" name="aniversario_fundacion_empresa">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s4">
+        <div class="section-head"><span class="num">04</span><h3>El negocio del cliente</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Giro o industria</label>
+            <input type="text" name="giro_industria">
+          </div>
+          <div class="field">
+            <label>Número de empleados aprox.</label>
+            <input type="number" name="num_empleados" min="0">
+          </div>
+          <div class="field">
+            <label>Facturación aproximada</label>
+            <input type="text" name="facturacion_aproximada">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s5">
+        <div class="section-head"><span class="num">05</span><h3>Preferencias de comunicación y trato</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Canal preferido</label>
+            <select name="canal_preferido">
+              <option value=""></option>
+              <option>WhatsApp</option>
+              <option>Llamada</option>
+              <option>Correo electrónico</option>
+              <option>Presencial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Horarios de contacto</label>
+            <input type="text" name="horarios_contacto">
+          </div>
+          <div class="field">
+            <label>Frecuencia deseada</label>
+            <select name="frecuencia_deseada">
+              <option value=""></option>
+              <option>Semanal</option>
+              <option>Quincenal</option>
+              <option>Mensual</option>
+              <option>Solo en fechas importantes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tono preferido</label>
+            <select name="tono_preferido">
+              <option value=""></option>
+              <option>Formal</option>
+              <option>Cercano</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Personas autorizadas</label>
+            <input type="text" name="personas_autorizadas">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s6">
+        <div class="section-head"><span class="num">06</span><h3>Intereses, aficiones y estilo</h3></div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Pasatiempos y aficiones</label>
+            <input type="text" name="pasatiempos">
+          </div>
+          <div class="field">
+            <label>Equipos o deportes favoritos</label>
+            <input type="text" name="equipos_deportes_favoritos">
+          </div>
+          <div class="field">
+            <label>Restaurantes y bebidas preferidas</label>
+            <input type="text" name="restaurantes_bebidas_preferidas">
+          </div>
+          <div class="field">
+            <label>Destinos de viaje favoritos</label>
+            <input type="text" name="destinos_viaje_favoritos">
+          </div>
+          <div class="field full">
+            <label>Preferencias de regalo</label>
+            <input type="text" name="preferencias_regalo">
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="s7">
+        <div class="section-head"><span class="num">07</span><h3>Señales y momentos de oportunidad</h3></div>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Momentos de vida del negocio</label>
+            <textarea name="momentos_vida_negocio"></textarea>
+          </div>
+          <div class="field full">
+            <label>Cambios en la familia</label>
+            <textarea name="cambios_familia"></textarea>
+          </div>
+          <div class="field full">
+            <label>Referidos que ha dado</label>
+            <textarea name="referidos_dados"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <div class="submit-bar">
+        <div id="status"></div>
+        <button type="submit" id="guardarBtn">Guardar cambios</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+  // ─── MISMA URL DE GOOGLE APPS SCRIPT QUE EN index.html ───
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyyWW-scfIWEl3y5gaq3TckD6XlnIwprjPJ8X4_70n-jF_EpBe5Vq6O4B9Ohac_DCtBXg/exec";
+  // ───────────────────────────────────────────────────────────
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  const sections = tabs.map(t => document.getElementById(t.dataset.target));
+  tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById(tab.dataset.target).scrollIntoView({behavior:'smooth', block:'start'});
     });
+  });
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = sections.indexOf(entry.target);
+        tabs.forEach(t => t.classList.remove('active'));
+        if (idx > -1) tabs[idx].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
 
-    sheet.appendRow(row);
+  const buscarInput = document.getElementById('buscarInput');
+  const resultadosEl = document.getElementById('resultados');
+  const form = document.getElementById('expedienteForm');
+  const statusEl = document.getElementById('status');
+  const guardarBtn = document.getElementById('guardarBtn');
 
-    return ContentService
-      .createTextOutput(JSON.stringify({ result: "ok" }))
-      .setMimeType(ContentService.MimeType.JSON);
+  let clientes = [];
+  let seleccionadoId = null;
+  let buscarTimeout = null;
 
-  } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ result: "error", message: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// Crea la fila de encabezados si la hoja está vacía.
-function ensureHeaders(sheet) {
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
-    sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight("bold");
-    sheet.setFrozenRows(1);
-  }
-}
-
-// Función opcional para probar manualmente desde el editor de Apps Script.
-function pruebaManual() {
-  const fakeEvent = {
-    postData: {
-      contents: JSON.stringify({
-        asesor: "Hector",
-        nivel_lealtad: "Oro",
-        nombre_completo: "Cliente de Prueba"
-      })
+  async function cargarClientes(q) {
+    resultadosEl.innerHTML = '<li class="cargando">Buscando…</li>';
+    try {
+      const url = `${WEB_APP_URL}?action=list${q ? '&q=' + encodeURIComponent(q) : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.result !== 'ok') throw new Error(data.message || 'Error desconocido');
+      clientes = data.clientes;
+      renderResultados(clientes);
+    } catch (err) {
+      resultadosEl.innerHTML = '<li class="vacio">No se pudo cargar la lista. Revisa tu conexión.</li>';
     }
-  };
-  doPost(fakeEvent);
-}
+  }
+
+  function renderResultados(lista) {
+    resultadosEl.innerHTML = '';
+    if (lista.length === 0) {
+      resultadosEl.innerHTML = '<li class="vacio">Sin resultados.</li>';
+      return;
+    }
+    lista.forEach(c => {
+      const li = document.createElement('li');
+      li.className = seleccionadoId === c.id ? 'selected' : '';
+      li.innerHTML = `<span>${c.nombre_completo || '(sin nombre)'}</span>` +
+        `<span class="asesor-fecha">${c.asesor || ''} · ${c.fecha_captura || ''}</span>`;
+      li.addEventListener('click', () => abrirCliente(c.id));
+      resultadosEl.appendChild(li);
+    });
+  }
+
+  buscarInput.addEventListener('input', () => {
+    clearTimeout(buscarTimeout);
+    const q = buscarInput.value.trim();
+    buscarTimeout = setTimeout(() => cargarClientes(q), 300);
+  });
+
+  async function abrirCliente(id) {
+    statusEl.textContent = 'Cargando expediente…';
+    statusEl.className = '';
+    try {
+      const res = await fetch(`${WEB_APP_URL}?action=get&id=${id}`);
+      const data = await res.json();
+      if (data.result !== 'ok') throw new Error(data.message || 'No encontrado');
+
+      seleccionadoId = id;
+      renderResultados(clientes);
+
+      for (const [key, value] of Object.entries(data.cliente)) {
+        const field = form.elements.namedItem(key);
+        if (field) field.value = value ?? '';
+      }
+      form.style.display = '';
+      statusEl.textContent = '';
+      statusEl.className = '';
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      statusEl.textContent = 'No se pudo cargar ese expediente.';
+      statusEl.className = 'err';
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!seleccionadoId) return;
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    data.__action = 'update';
+    data.__id = seleccionadoId;
+
+    guardarBtn.disabled = true;
+    statusEl.textContent = 'Guardando…';
+    statusEl.className = '';
+
+    try {
+      const res = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (result.result !== 'ok') throw new Error(result.message || 'Error al guardar');
+      statusEl.textContent = '✓ Cambios guardados.';
+      statusEl.className = 'ok';
+      await cargarClientes(buscarInput.value.trim());
+    } catch (err) {
+      statusEl.textContent = 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.';
+      statusEl.className = 'err';
+    } finally {
+      guardarBtn.disabled = false;
+    }
+  });
+
+  cargarClientes('');
+</script>
+
+</body>
+</html>
